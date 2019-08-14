@@ -1,5 +1,5 @@
 # JTL File Parser
-![Travis (.org)](https://img.shields.io/travis/varevarao/jtl_parser) ![GitHub package.json version](https://img.shields.io/github/package-json/v/varevarao/jtl_parser)
+[![Build Status](https://travis-ci.com/varevarao/jtl_parser.svg?branch=master)](https://travis-ci.com/varevarao/jtl_parser) ![GitHub package.json version](https://img.shields.io/github/package-json/v/varevarao/jtl_parser)
 
 A quick and simple parser for JMeter outputted JTL files. This tool comes with a config file which can be customized to build your output.
 
