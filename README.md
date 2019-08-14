@@ -9,7 +9,7 @@ Clone the repository, and run `yarn install` to initialize
 ## Usage
 ### **cli-mode**:
 ```
-$ yarn start -f <input file path> [-o <output file path>]
+$ yarn start -f <input file path> [-o <output file path> -v <for verbose>]
 ```
 The tool will then use the config supplied under `src/config.js` to transform the input data into the output format, and write it to the output path (*which defaults to the project directory*)
 
@@ -22,7 +22,15 @@ The in code:
 ```
 import transformJTL from 'jtl-parser';
 ...
-transformJTL({ f: <input file path>, [o: <output file path>] });
+
+transformJTL({
+    f: <input file path>,
+    [
+        o: <output file path>,
+        v: <true for verbose>,
+        skipWrite: <true to skip write to file at the end>
+    ] 
+}).then(processedOutput => ...).catch(err => ...);
 ```
 
 ## Config

@@ -62,27 +62,30 @@ var processOutput = function processOutput(isVerbose) {
   if (isVerbose) console.log('Output', JSON.stringify(acc));
 };
 
-var processComplete = function processComplete(outputPath) {
-  console.log('Opening write stream to ', outputPath);
-  var writer = (0, _csvWriteStream["default"])(CSV_OPTS_OUTPUT);
-  writer.pipe(_fs["default"].createWriteStream(outputPath));
+var processComplete = function processComplete(outputPath, skipWrite) {
+  if (!skipWrite) {
+    console.log('Opening write stream to ', outputPath);
+    var writer = (0, _csvWriteStream["default"])(CSV_OPTS_OUTPUT);
+    writer.pipe(_fs["default"].createWriteStream(outputPath));
 
-  for (var _i3 = 0, _Object$keys3 = Object.keys(outputObj); _i3 < _Object$keys3.length; _i3++) {
-    var label = _Object$keys3[_i3];
+    for (var _i3 = 0, _Object$keys3 = Object.keys(outputObj); _i3 < _Object$keys3.length; _i3++) {
+      var label = _Object$keys3[_i3];
 
-    // Clean up any ignored items
-    var printable = _objectSpread({}, outputObj[label]);
+      // Clean up any ignored items
+      var printable = _objectSpread({}, outputObj[label]);
 
-    for (var _i4 = 0, _Object$keys4 = Object.keys(outputObj[label]); _i4 < _Object$keys4.length; _i4++) {
-      var key = _Object$keys4[_i4];
-      if (key.startsWith('_')) delete printable[key];
+      for (var _i4 = 0, _Object$keys4 = Object.keys(outputObj[label]); _i4 < _Object$keys4.length; _i4++) {
+        var key = _Object$keys4[_i4];
+        if (key.startsWith('_')) delete printable[key];
+      }
+
+      writer.write(printable);
     }
 
-    writer.write(printable);
+    writer.end();
   }
 
-  writer.end();
-  console.info('Done.');
+  return outputObj;
 };
 
 var setOutputConfig = function setOutputConfig(config) {
@@ -96,37 +99,43 @@ var transformJTL = function transformJTL(options) {
       _options$o = options.o,
       outputPath = _options$o === void 0 ? _config.DEFAULT_OUTPUT : _options$o,
       _options$v = options.v,
-      isVerbose = _options$v === void 0 ? false : _options$v;
+      isVerbose = _options$v === void 0 ? false : _options$v,
+      _options$skipWrite = options.skipWrite,
+      skipWrite = _options$skipWrite === void 0 ? false : _options$skipWrite;
+  return new Promise(function (res, rej) {
+    try {
+      _fs["default"].exists(filePath, function (proceed) {
+        if (proceed) {
+          console.info('Creating read stream for file at ', filePath);
 
-  try {
-    _fs["default"].exists(filePath, function (proceed) {
-      if (proceed) {
-        console.info('Creating read stream for file at ', filePath);
+          _fs["default"].createReadStream(filePath).pipe((0, _csvParser["default"])(CSV_OPTS_INPUT)).on('data', function (row) {
+            var timeStamp = row.timeStamp; // If we're not on the header row, process
 
-        _fs["default"].createReadStream(filePath).pipe((0, _csvParser["default"])(CSV_OPTS_INPUT)).on('data', function (row) {
-          var timeStamp = row.timeStamp; // If we're not on the header row, process
+            if (timeStamp !== _config.JTL_HEADERS[0]) {
+              processRow(row, isVerbose);
+            }
+          }).on('end', function () {
+            console.info('Completed parsing file.');
+            processOutput(isVerbose); // We're done, dump the output
 
-          if (timeStamp !== _config.JTL_HEADERS[0]) {
-            processRow(row, isVerbose);
-          }
-        }).on('end', function () {
-          console.info('Completed parsing file.');
-          processOutput(isVerbose); // We're done, dump the output
-
-          processComplete(outputPath);
-        });
-      } else {
-        console.error('No supported file found at path: ', filePath);
-      }
-    });
-  } catch (err) {
-    console.error('Error while running program: ', err);
-  }
+            res(processComplete(outputPath, skipWrite));
+          });
+        } else {
+          rej("No supported file found at path: ".concat(filePath));
+        }
+      });
+    } catch (err) {
+      console.error('Error in transforming JTL: ', err);
+      rej(err);
+    }
+  });
 };
 
 exports.transformJTL = transformJTL;
 
 if (require.main === module) {
   // Called directly from cmd
-  transformJTL(_yargs["default"].argv);
+  transformJTL(_yargs["default"].argv).then(function () {
+    return console.info('Done.');
+  });
 }
