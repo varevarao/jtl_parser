@@ -1,5 +1,10 @@
 "use strict";
 
+Object.defineProperty(exports, "__esModule", {
+  value: true
+});
+exports.transformJTL = exports.setOutputConfig = void 0;
+
 var _csvParser = _interopRequireDefault(require("csv-parser"));
 
 var _csvWriteStream = _interopRequireDefault(require("csv-write-stream"));
@@ -25,40 +30,39 @@ var CSV_OPTS_OUTPUT = {
   sendHeaders: true
 };
 var outputObj = {};
+var outputConfig = _config.outputConfig;
 
-var processRow = function processRow(row) {
+var processRow = function processRow(row, isVerbose) {
   var acc = outputObj; // For each key in the output map, which isn't ignored
 
-  for (var _i = 0, _Object$keys = Object.keys(_config.outputConfig); _i < _Object$keys.length; _i++) {
+  for (var _i = 0, _Object$keys = Object.keys(outputConfig); _i < _Object$keys.length; _i++) {
     var key = _Object$keys[_i];
 
     if (key.startsWith('_')) {
       continue;
     }
 
-    if ('transformRow' in _config.outputConfig[key]) _config.outputConfig[key].transformRow(acc, row);
+    if ('transformRow' in outputConfig[key]) outputConfig[key].transformRow(acc, row, isVerbose);
   }
 };
 
-var processOutput = function processOutput() {
+var processOutput = function processOutput(isVerbose) {
   var acc = outputObj; // For each key in the output map, which isn't ignored
 
-  for (var _i2 = 0, _Object$keys2 = Object.keys(_config.outputConfig); _i2 < _Object$keys2.length; _i2++) {
+  for (var _i2 = 0, _Object$keys2 = Object.keys(outputConfig); _i2 < _Object$keys2.length; _i2++) {
     var key = _Object$keys2[_i2];
 
     if (key.startsWith('_')) {
       continue;
     }
 
-    if ('transformOutput' in _config.outputConfig[key]) _config.outputConfig[key].transformOutput(acc);
+    if ('transformOutput' in outputConfig[key]) outputConfig[key].transformOutput(acc, isVerbose);
   }
 
-  if (isVerbose) console.log('Output', JSON.stringify(acc)); // We're done, dump the output
-
-  processComplete();
+  if (isVerbose) console.log('Output', JSON.stringify(acc));
 };
 
-var processComplete = function processComplete() {
+var processComplete = function processComplete(outputPath) {
   console.log('Opening write stream to ', outputPath);
   var writer = (0, _csvWriteStream["default"])(CSV_OPTS_OUTPUT);
   writer.pipe(_fs["default"].createWriteStream(outputPath));
@@ -81,32 +85,48 @@ var processComplete = function processComplete() {
   console.info('Done.');
 };
 
-var _yargs$argv = _yargs["default"].argv,
-    filePath = _yargs$argv.f,
-    _yargs$argv$o = _yargs$argv.o,
-    outputPath = _yargs$argv$o === void 0 ? _config.DEFAULT_OUTPUT : _yargs$argv$o,
-    _yargs$argv$v = _yargs$argv.v,
-    isVerbose = _yargs$argv$v === void 0 ? false : _yargs$argv$v;
+var setOutputConfig = function setOutputConfig(config) {
+  outputConfig = config;
+};
 
-try {
-  _fs["default"].exists(filePath, function (proceed) {
-    if (proceed) {
-      console.info('Creating read stream for file at ', filePath);
+exports.setOutputConfig = setOutputConfig;
 
-      _fs["default"].createReadStream(filePath).pipe((0, _csvParser["default"])(CSV_OPTS_INPUT)).on('data', function (row) {
-        var timeStamp = row.timeStamp; // If we're not on the header row, process
+var transformJTL = function transformJTL(options) {
+  var filePath = options.f,
+      _options$o = options.o,
+      outputPath = _options$o === void 0 ? _config.DEFAULT_OUTPUT : _options$o,
+      _options$v = options.v,
+      isVerbose = _options$v === void 0 ? false : _options$v;
 
-        if (timeStamp !== _config.JTL_HEADERS[0]) {
-          processRow(row);
-        }
-      }).on('end', function () {
-        console.info('Completed parsing file.');
-        processOutput();
-      });
-    } else {
-      console.error('No supported file found at path: ', filePath);
-    }
-  });
-} catch (err) {
-  console.error('Error while running program: ', err);
+  try {
+    _fs["default"].exists(filePath, function (proceed) {
+      if (proceed) {
+        console.info('Creating read stream for file at ', filePath);
+
+        _fs["default"].createReadStream(filePath).pipe((0, _csvParser["default"])(CSV_OPTS_INPUT)).on('data', function (row) {
+          var timeStamp = row.timeStamp; // If we're not on the header row, process
+
+          if (timeStamp !== _config.JTL_HEADERS[0]) {
+            processRow(row, isVerbose);
+          }
+        }).on('end', function () {
+          console.info('Completed parsing file.');
+          processOutput(isVerbose); // We're done, dump the output
+
+          processComplete(outputPath);
+        });
+      } else {
+        console.error('No supported file found at path: ', filePath);
+      }
+    });
+  } catch (err) {
+    console.error('Error while running program: ', err);
+  }
+};
+
+exports.transformJTL = transformJTL;
+
+if (require.main === module) {
+  // Called directly from cmd
+  transformJTL(_yargs["default"].argv);
 }
