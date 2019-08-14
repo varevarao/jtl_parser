@@ -86,3 +86,9 @@ typings/
 
 # DynamoDB Local files
 .dynamodb/
+
+# VS Code
+.history/
+
+# Project output
+*.csv

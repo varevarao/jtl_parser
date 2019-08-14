@@ -2,8 +2,22 @@
   "name": "jtl_parser",
   "version": "1.0.0",
   "description": "JMeter jtl files to a succint tabular report (in csv format)",
-  "main": "index.js",
+  "main": "lib/index.js",
   "repository": "https://github.com/varevarao/jtl_parser",
   "author": "Varshneya Rao <varevarao@gmail.com>",
-  "license": "MIT"
+  "license": "MIT",
+  "scripts": {
+    "build": "babel lib/ -d dist",
+    "start": "npm run build && node dist/index.js"
+  },
+  "devDependencies": {
+    "@babel/cli": "^7.5.5",
+    "@babel/core": "^7.5.5",
+    "@babel/preset-env": "^7.5.5"
+  },
+  "dependencies": {
+    "csv-parser": "^2.3.0",
+    "csv-write-stream": "^2.0.0",
+    "yargs": "^13.3.0"
+  }
 }
