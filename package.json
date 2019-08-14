@@ -1,6 +1,6 @@
 {
   "name": "jtl_parser",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "JMeter jtl files to a succint tabular report (in csv format)",
   "main": "lib/index.js",
   "repository": "https://github.com/varevarao/jtl_parser",
