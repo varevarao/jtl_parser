@@ -5,6 +5,7 @@ A quick and simple parser for JMeter outputted JTL files. This tool comes with a
 
 ## Setup
 Clone the repository, and run `yarn install` to initialize
+From the npm registry: [npmjs](https://www.npmjs.com/package/jtl_parser)
 
 ## Usage
 ### **cli-mode**:
